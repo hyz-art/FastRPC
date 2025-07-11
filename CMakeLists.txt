@@ -12,7 +12,7 @@ add_library(sylar SHARED ${LIB_SRC})
 add_library(sylar_static STATIC ${LIB_SRC})
 set_target_properties(sylar_static PROPERTIES OUTPUT_NAME "sylar")
 
-add_executable(test test/test.cc)
+add_executable(test tests/test.cc)
 add_dependencies(test sylar)
 target_link_libraries(test sylar)
 
