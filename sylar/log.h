@@ -6,7 +6,32 @@
 #include <list>
 #include <stdint.h>
 #include <fstream>
+#include <sstream>
 #include <vector>
+#include <map>
+#include "singleton.h"
+#define SYLAR_LOG_LEVEL(logger,level)\
+    if(logger->getLevel()<=level)\
+    sylar::LogEventWrap(sylar::LogEvent::ptr(new sylar::LogEvent(logger,level,__FILE__,\
+        __LINE__,0,sylar::GetThreadId(),sylar::GetFiberId(), time(0),"thread_name"))).getSS()
+
+#define SYLAR_LOG_DEBUG(logger) SYLAR_LOG_LEVEL(logger,sylar::LogLevel::DEBUG)
+#define SYLAR_LOG_INFO(logger) SYLAR_LOG_LEVEL(logger,sylar::LogLevel::INFO)
+#define SYLAR_LOG_WARN(logger) SYLAR_LOG_LEVEL(logger,sylar::LogLevel::WARN)
+#define SYLAR_LOG_ERROR(logger) SYLAR_LOG_LEVEL(logger,sylar::LogLevel::ERROR)
+#define SYLAR_LOG_FATAL(logger) SYLAR_LOG_LEVEL(logger,sylar::LogLevel::FATAL)
+
+#define SYLAR_LOG_FMT_LEVEL(logger,level,fmt,...)\
+    if(logger->getLevel()<=level)\
+        sylar::LogEventWrap(sylar::LogEvent::ptr(new sylar::LogEvent(logger,level,__FILE__,\
+        __LINE__,0,sylar::GetThreadId(),sylar::GetFiberId(), time(0),"thread_name")))\
+        .getEvent()->format(fmt,__VA_ARGS__)
+
+#define SYLAR_LOG_FMT_DEBUG(logger,fmt,...) SYLAR_LOG_FMT_LEVEL(logger, sylar::LogLevel::DEBUG,fmt,__VA_ARGS__)
+#define SYLAR_LOG_FMT_INFO(logger,fmt,...) SYLAR_LOG_FMT_LEVEL(logger, sylar::LogLevel::INFO,fmt,__VA_ARGS__)
+#define SYLAR_LOG_FMT_WARN(logger,fmt,...) SYLAR_LOG_FMT_LEVEL(logger, sylar::LogLevel::WARN,fmt,__VA_ARGS__)
+#define SYLAR_LOG_FMT_ERROR(logger,fmt,...) SYLAR_LOG_FMT_LEVEL(logger, sylar::LogLevel::ERROR,fmt,__VA_ARGS__)
+#define SYLAR_LOG_FMT_FATAL(logger,fmt,...) SYLAR_LOG_FMT_LEVEL(logger, sylar::LogLevel::FATAL,fmt,__VA_ARGS__)
 namespace sylar
 {
     class Logger;
@@ -33,7 +58,8 @@ namespace sylar
     {
     public:
         typedef std::shared_ptr<LogEvent> ptr;
-        LogEvent();
+        LogEvent(std::shared_ptr<Logger> logger, LogLevel::Level level, const char* file, int32_t line, uint32_t elapse, uint32_t thread_id, uint32_t fiber_id, uint64_t time,
+                   const std::string& thread_name);
         const char* getFile() const { return m_file; }
         int32_t getLine() const { return m_line; }
         uint32_t getElapse() const { return m_elapse; }
@@ -45,6 +71,8 @@ namespace sylar
         std::shared_ptr<Logger> getLogger() const { return m_logger; }
         LogLevel::Level getLevel() const { return m_level; }
         std::stringstream& getSS() { return m_ss; }
+        void format(const char* fmt,...);
+        void format(const char* fmt,va_list al);
     private:
         const char *m_file = nullptr;
         int32_t m_line = 0;
@@ -67,7 +95,12 @@ namespace sylar
     class LogEventWrap
     {
     public:
+        LogEventWrap(LogEvent::ptr e);
+        ~LogEventWrap();
+        LogEvent::ptr getEvent() const { return m_event;}
+        std::stringstream& getSS();
     private:
+        LogEvent::ptr m_event;
     };
 
     // 日志格式器
@@ -76,7 +109,6 @@ namespace sylar
     public:
         typedef std::shared_ptr<LogFormatter> ptr;
         LogFormatter(const std::string &pattern);
-        std::string format(LogEvent::ptr event);
         std::string format(std::shared_ptr<Logger> logger,LogLevel::Level level ,LogEvent::ptr event);
         std::ostream& format(std::ostream& ofs, std::shared_ptr<Logger> Logger, LogLevel::Level level, LogEvent::ptr event);        
         void init();
@@ -98,18 +130,27 @@ namespace sylar
     // 日志输出地
     class LogAppender
     {
+        friend class Logger;
     public:
         typedef std::shared_ptr<LogAppender> ptr;
-        virtual void log(LogLevel::Level Level, const LogEvent::ptr event);
+        virtual void log(std::shared_ptr<Logger> logger,LogLevel::Level Level, const LogEvent::ptr event)=0;
         virtual ~LogAppender(){}
+        //日志格式的操作
+        void setFormatter(LogFormatter::ptr val);
+        LogFormatter::ptr getFormatter();
+        //日志级别
+        LogLevel::Level getLevel() const { return m_level; }
+        void setLevel(LogLevel::Level val) { m_level = val; }
     protected:
         LogLevel::Level m_level = LogLevel::DEBUG; // 日志级别
+        bool m_hasFormatter = false;
         LogFormatter::ptr m_formatter; // 日志格式器
     };
 
     // 日志器
     class Logger : public std::enable_shared_from_this<Logger>
     {
+        friend class LoggerManager;
     public:
         typedef std::shared_ptr<Logger> ptr;
 
@@ -131,7 +172,7 @@ namespace sylar
 
         // 设置日志格式
         void setFormatter(LogFormatter::ptr formatter);
-        LogFormatter::ptr getFormatter() const;
+        LogFormatter::ptr getFormatter() ;
 
         // 获取日志器信息        
         const std::string &getName() const { return m_name; }
@@ -146,6 +187,7 @@ namespace sylar
         LogLevel::Level m_level;
         std::list<LogAppender::ptr> m_appenders; // 日志输出地列表 
         LogFormatter::ptr m_formatter;
+        Logger::ptr m_root;
     };
 
     
@@ -154,7 +196,7 @@ namespace sylar
     {
     public:
         typedef std::shared_ptr<StdoutLogAppender> ptr;
-        void log(LogLevel::Level level, const LogEvent::ptr event) override;
+        void log(Logger::ptr logger,LogLevel::Level level, LogEvent::ptr event) override;
     private:
     };
 
@@ -164,7 +206,7 @@ namespace sylar
         typedef std::shared_ptr<FileLogAppender> ptr;
         FileLogAppender(const std::string &filename);
         bool reopen();
-        void log(LogLevel::Level level, const LogEvent::ptr event) override;
+        void log(Logger::ptr logger,LogLevel::Level level, LogEvent::ptr event) override;
     private:
         std::string m_filename;
         std::ofstream m_filestream; // 文件流
@@ -172,9 +214,19 @@ namespace sylar
     };
 
     // 日志器管理类
-    class LogManager
+    class LoggerManager
     {
+    public:
+        LoggerManager();
+        Logger::ptr getLogger(const std::string &name);
+        void init();
+        Logger::ptr getRoot() const { return m_root;}
+        std::string toYamlString();
+    private:
+        std::map<std::string,Logger::ptr> m_loggers;
+        Logger::ptr m_root;
     };
+typedef sylar::Singleton<LoggerManager> LoggerMgr;
 
 }
 
