@@ -45,6 +45,16 @@
         "list": "cpp",
         "iostream": "cpp",
         "map": "cpp",
-        "cinttypes": "cpp"
+        "cinttypes": "cpp",
+        "cstring": "cpp",
+        "ctime": "cpp",
+        "strstream": "cpp",
+        "cfenv": "cpp",
+        "charconv": "cpp",
+        "complex": "cpp",
+        "set": "cpp",
+        "source_location": "cpp",
+        "iomanip": "cpp",
+        "valarray": "cpp"
     }
 }

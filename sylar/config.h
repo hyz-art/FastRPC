@@ -1,0 +1,137 @@
+#ifndef __SYLAR_CONFIG_H__
+#define __SYLAR_CONFIG_H__
+
+#include <memory>
+#include <string>
+#include <sstream>
+#include <boost/lexical_cast.hpp>
+#include <unordered_map>
+#include <functional>
+#include <yaml-cpp/yaml.h>
+#include "log.h"
+#include "util.h"
+namespace sylar
+{
+    class ConfigVarBase
+    {
+    public:
+        typedef std::shared_ptr<ConfigVarBase> ptr;
+        ConfigVarBase(const std::string &name, const std::string &decription = "")
+            : m_name(name), m_description(decription) {
+            std::transform(m_name.begin(),m_name.end(),m_name.begin(),::tolower);
+        }
+        virtual ~ConfigVarBase() {}
+        const std::string &getName() const { return m_name; }
+        const std::string &getDescription() const { return m_description; }
+        virtual std::string toString()=0;
+        virtual bool fromString(const std::string& val)=0;
+        virtual std::string getTypeName() const=0;
+    protected:
+        std::string m_name;
+        std::string m_description;
+    };
+    template<class T>
+    class ConfigVar:public ConfigVarBase{
+        public:
+        typedef std::shared_ptr<ConfigVar> ptr;
+        typedef std::function<void(const T& old_value, const T& new_value)>  on_change_cb;
+        ConfigVar(const std::string& name, const T& default_value, const std::string& description="")
+            :ConfigVarBase(name,description), m_val(default_value){}
+        
+        std::string toString()override{
+            try{
+                return boost::lexical_cast<std::string>(m_val);
+            }catch(std::exception& e){
+                SYLAR_LOG_ERROR(SYLAR_LOG_ROOT())
+                    <<"ConfigVar::toString exception "<<e.what()<<" convert: "<<TypeToName<T>()
+                    <<" to string"<<" name="<<m_name;
+            }
+            return "";
+        }
+
+        bool fromString(const std::string& val) override{
+            try{
+                //setValue(val);
+            }catch (std::exception& e){
+                SYLAR_LOG_ERROR(SYLAR_LOG_ROOT())
+                    <<"ConfiVar::fromString exception "<<e.what()<<" convert: string to "
+                    <<TypeToName<T>()<<" name= "<<m_name<<" - "<<val;
+            }
+            return false;
+        }
+
+        std::string getTypeName() const override { return TypeToName<T>(); }
+
+        const T getValue() { return m_val;}
+        
+        void setValue(const T& v) { 
+            if (v == m_val) {
+                return;
+            }
+            for (auto& i : m_cbs) {
+                i.second(m_val, v);
+            }
+            m_val = v;
+        }
+    private:
+        T m_val;
+        std::map<uint64_t,on_change_cb> m_cbs;
+    };
+
+    class Config{
+        public:
+        typedef std::unordered_map<std::string, ConfigVarBase::ptr> ConfigVarMap;
+        //定义的时候模板赋值
+        template<class T>
+        static typename ConfigVar<T>::ptr Lookup(const std::string& name, const T& default_value,
+            const std::string& description=""){
+            auto it=GetDatas().find(name);
+            if(it!=GetDatas().end()){
+                auto tmp=std::dynamic_pointer_cast<ConfigVar<T>>(it->second);
+                if(tmp){//ConfigVarBase::ptr
+                    SYLAR_LOG_INFO(SYLAR_LOG_ROOT())<<" Lookup name= "<<name<<" exists";
+                    return tmp;
+                }else{
+                    SYLAR_LOG_INFO(SYLAR_LOG_ROOT())<<name<<" exists but  type not "<<TypeToName<T>()
+                        <<" real_type= "<< it->second->getTypeName() << " " <<it->second->toString();
+                    return nullptr; 
+                }
+            }
+            if(name.find_first_not_of("abcdefghijklmnopqrstuvwxyz._0123456789")!=std::string::npos){
+                SYLAR_LOG_ERROR(SYLAR_LOG_ROOT()) << "Lookup name invalid " << name;
+                throw std::invalid_argument(name);
+            }
+            typename ConfigVar<T>::ptr v(new ConfigVar<T>(name,default_value,description));
+            GetDatas()[name]=v;
+            return v;
+        }
+
+        template<class T>
+        static typename ConfigVar<T>::ptr Lookup(const std::string& name){
+            auto it=GetDatas().find(name);
+            if(it==GetDatas().end())
+                return nullptr;
+            return std::dynamic_pointer_cast<ConfigVar<T>>(it->second);
+        }
+        //node初始化配置文件
+        static void LoadFromYaml(const YAML::Node& root);
+        //加载path的配置文件
+        static void LoadFromConfDir(const std::string& path, bool force=false);
+        //配置基类
+        static ConfigVarBase::ptr LookupBase(const std::string& name);
+        //遍历配置项
+        static void Visit(std::function<void(ConfigVarBase::ptr)> cb);
+        private:
+        //static ConfigVarMap m_datas;
+        static ConfigVarMap& GetDatas(){
+            static ConfigVarMap s_datas;
+            return s_datas;
+        }
+        // static ConfigVarMap& GetMutex(){
+        //     static RWMutexType s_mutex;
+        //     return s_mutex;
+        // }
+    };
+    
+}
+#endif
