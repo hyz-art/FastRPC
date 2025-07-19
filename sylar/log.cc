@@ -4,6 +4,7 @@
 #include <map>
 #include <functional>
 #include <cstdarg>
+#include "config.h"
 namespace sylar
 {
     const char *LogLevel::ToString(LogLevel::Level Level)
@@ -132,7 +133,7 @@ namespace sylar
     public:
         NameFormatItem(const std::string &str = "") {}
         void format(std::ostream &os, Logger::ptr logger, LogLevel::Level level, LogEvent::ptr event) override
-        {
+        {//logger->getName()
             os << event->getLogger()->getName();
         }
     };
@@ -265,19 +266,16 @@ namespace sylar
 
     void Logger::log(LogLevel::Level level, const LogEvent::ptr &event)
     {
-        if (level < m_level)
-        {
-            return; // 如果日志级别低于当前设置的级别，则不处理
-        }
-        else if (!event)
-        {
-            return; // 如果事件为空，则不处理
-        }
-        auto self = shared_from_this();
-        // 如果事件内容不为空，则处理日志
-        for (auto &appender : m_appenders)
-        {
-            appender->log(self, level, event);
+        if (level >= m_level){
+            auto self = shared_from_this();
+            // 如果事件内容不为空，则处理日志
+            if(!m_appenders.empty()){
+                for (auto &appender : m_appenders) {
+                    appender->log(self, level, event);
+                }
+            }else if(m_root){
+                m_root->log(level,event);
+            }
         }
     }
 
@@ -331,6 +329,16 @@ namespace sylar
     // 设置日志格式
     void Logger::setFormatter(LogFormatter::ptr formatter)
     {
+        m_formatter=formatter;
+    }
+    void Logger::setFormatter(const std::string& val){
+        sylar::LogFormatter::ptr new_val(new sylar::LogFormatter(val));
+        if(new_val->isError()){
+           std::cout <<"Logger setFormatter name="<<m_name<<" value="<<val<<" invalid formatter"<< std::endl;
+            return;
+        } 
+        //m_formatter=new_val;
+        setFormatter(new_val);
     }
     LogFormatter::ptr Logger::getFormatter()
     {
@@ -510,6 +518,94 @@ namespace sylar
         }
         // std::cout << m_items.size() << std::endl;
     }
+
+    struct LogAppenderDefine{
+        int type=0;//1:Stdout,2:File
+        LogLevel::Level level=LogLevel::UNKNOW;
+        std::string formatter;
+        std::string file;
+        bool operator==(const LogAppenderDefine& oth)const{
+            return type==oth.type&& level==oth.level &&formatter==oth.formatter&& file==oth.file;
+        }
+    };
+    struct LogDefine{
+        std::string name;
+        LogLevel::Level level=LogLevel::UNKNOW;
+        std::string formatter;
+        std::vector<LogAppenderDefine> appenders;//日志输出
+        bool operator==(const LogDefine& oth)const{
+            return name==oth.name && level==oth.level && formatter==oth.formatter && appenders==oth.appenders;
+        }
+        bool operator<(const LogDefine& oth) const { return name < oth.name; }
+        bool isValid() const { return !name.empty(); }
+    };
+    //定义日志类型的配置元素
+    sylar::ConfigVar<std::set<LogDefine>>::ptr g_log_defines=
+        sylar::Config::Lookup("logs",std::set<LogDefine>(),"logs config");
+
+    struct LogIniter {
+        LogIniter() {
+            g_log_defines->addListener([](const std::set<LogDefine>& old_value, const std::set<LogDefine>& new_value) {
+                SYLAR_LOG_INFO(SYLAR_LOG_ROOT()) << "on_logger_conf_changed";
+                for (auto& i : new_value) {
+                    auto it = old_value.find(i);
+                    sylar::Logger::ptr logger;
+                    if (it == old_value.end()) {
+                        // 新增logger
+                        logger = SYLAR_LOG_NAME(i.name);//获取日志器
+                    } else {
+                        if (!(i == *it)) {
+                            // 修改的logger
+                            logger = SYLAR_LOG_NAME(i.name);
+                        } else {
+                            continue;
+                        }
+                    }
+                    logger->setLevel(i.level);
+                    if (!i.formatter.empty()) {
+                        logger->setFormatter(i.formatter);//设置日志格式
+                    }
+
+                    logger->clearAppenders();//重新添加目标
+                    for (auto& a : i.appenders) {
+                        sylar::LogAppender::ptr ap;
+                        if (a.type == 1) {
+                            ap.reset(new FileLogAppender(a.file));
+                        } else if (a.type == 2) {
+                            // if (!sylar::EnvMgr::GetInstance()->has("d")) {
+                            //     ap.reset(new StdoutLogAppender);
+                            // } else {
+                            //     continue;
+                            // }
+                            ap.reset(new StdoutLogAppender);
+                        }
+                        ap->setLevel(a.level);//目标级的设置
+                        if (!a.formatter.empty()) {
+                            LogFormatter::ptr fmt(new LogFormatter(a.formatter));
+                            if (!fmt->isError()) {
+                                ap->setFormatter(fmt);
+                            } else {
+                                std::cout << "log.name=" << i.name << " appender type=" << a.type
+                                        << " formatter=" << a.formatter << " is invalid" << std::endl;
+                            }
+                        }
+                        logger->addAppender(ap);
+                    }
+                }
+
+                for (auto& i : old_value) {
+                    auto it = new_value.find(i);
+                    if (it == new_value.end()) {
+                        // 删除logger
+                        auto logger = SYLAR_LOG_NAME(i.name);
+                        logger->setLevel((LogLevel::Level)0);
+                        logger->clearAppenders();
+                    }
+                }
+            });
+        }
+    };
+
     
     void LoggerManager::init() {}
     
@@ -523,7 +619,7 @@ namespace sylar
     }
 
     Logger::ptr LoggerManager::getLogger(const std::string& name) {
-        auto            it = m_loggers.find(name);
+        auto it = m_loggers.find(name);
         if (it != m_loggers.end()) {
             return it->second;
         }

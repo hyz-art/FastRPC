@@ -187,7 +187,7 @@ namespace sylar
         std::string operator()(const std::map<std::string,T>& v) {
             YAML::Node node(YAML::NodeType::Map);
             for (auto& i : v) {
-                node.push_back(YAML::Load(LexicalCast<T, std::string>()(i.second)));
+                node[i.first] =YAML::Load(LexicalCast<T, std::string>()(i.second));
             }
             std::stringstream ss;
             ss << node;
@@ -262,13 +262,31 @@ namespace sylar
         const T getValue() { return m_val;}
         
         void setValue(const T& v) { 
+            //值不变就返回
             if (v == m_val) {
                 return;
             }
             for (auto& i : m_cbs) {
+                //唤醒val， 回调函数：旧值 → 新值
                 i.second(m_val, v);
             }
-            m_val = v;
+            m_val = v;//设置值
+        }
+        uint64_t addListener(on_change_cb cb){
+            static uint64_t s_fun_id=0;
+            ++s_fun_id;
+            m_cbs[s_fun_id]=cb;
+            return s_fun_id;
+        }
+        void delListener(uint64_t key){
+            m_cbs.erase(key);
+        }
+        on_change_cb getListener(uint64_t key){
+            auto it=m_cbs.find(key);
+            return it==m_cbs.end()?nullptr:it->second;
+        }
+        void clearListener(){
+            m_cbs.clear();
         }
     private:
         T m_val;

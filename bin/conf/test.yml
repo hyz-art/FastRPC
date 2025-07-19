@@ -1,0 +1,43 @@
+system:
+  port: 9900
+  value: 15
+  int_vec: 
+    - 10
+    - 30
+  int_list: [20, 40]
+
+  str_int_map:
+    key1: 200
+    key2: 100
+    key3: 300
+
+  int_set: [ 5,4 ]
+  int_uset: [ 7,5 ]
+
+  str_int_umap:
+    alpha: 20
+    beta: 10
+    gamma: 30
+
+class:
+  person:
+    name: kk
+    age: 23
+    sex: true
+  map:
+    key1:
+      name: r1
+      age: 22
+      sex: false
+    key2:
+      name: r2
+      age: 23
+      sex: false 
+  vec_map:
+    k1:
+      - name: v1
+        age: 24
+        sex: false
+      - name: v2
+        age: 21
+        sex: false

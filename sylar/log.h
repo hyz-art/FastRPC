@@ -175,6 +175,9 @@ namespace sylar
 
         // 设置日志格式
         void setFormatter(LogFormatter::ptr formatter);
+        // 设置日志模板
+        void setFormatter(const std::string& val);
+        // 获取日志格式器
         LogFormatter::ptr getFormatter() ;
 
         // 获取日志器信息        
