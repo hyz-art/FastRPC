@@ -116,7 +116,7 @@ namespace sylar
         std::ostream& format(std::ostream& ofs, std::shared_ptr<Logger> Logger, LogLevel::Level level, LogEvent::ptr event);        
         void init();
         bool isError() const { return m_error;}
-
+        const std::string getPattern() const { return m_pattern;}
     public:
         class FormatItem{
         public:
@@ -138,6 +138,8 @@ namespace sylar
         typedef std::shared_ptr<LogAppender> ptr;
         virtual void log(std::shared_ptr<Logger> logger,LogLevel::Level Level, const LogEvent::ptr event)=0;
         virtual ~LogAppender(){}
+        // 输出目标转换
+        virtual std::string toYamlString() = 0;
         //日志格式的操作
         void setFormatter(LogFormatter::ptr val);
         LogFormatter::ptr getFormatter();
@@ -186,7 +188,7 @@ namespace sylar
         void setLevel(LogLevel::Level level) { m_level = level; }
         
         // 日志器配置转换为YAML格式
-        std::string toYamlString() const;
+        std::string toYamlString();
 
     private:
         std::string m_name;
@@ -203,6 +205,7 @@ namespace sylar
     public:
         typedef std::shared_ptr<StdoutLogAppender> ptr;
         void log(Logger::ptr logger,LogLevel::Level level, LogEvent::ptr event) override;
+        std::string toYamlString()override;
     private:
     };
 
@@ -213,6 +216,7 @@ namespace sylar
         FileLogAppender(const std::string &filename);
         bool reopen();
         void log(Logger::ptr logger,LogLevel::Level level, LogEvent::ptr event) override;
+        std::string toYamlString()override;
     private:
         std::string m_filename;
         std::ofstream m_filestream; // 文件流

@@ -124,15 +124,15 @@ namespace sylar
         }
     };
     template<class T>
-    class LexicalCast< std::set<T>,std::string>{
-        public:
+    class LexicalCast<std::set<T>, std::string> {
+    public:
         std::string operator()(const std::set<T>& v) {
-            YAML::Node node(YAML::NodeType::Sequence);
+            YAML::Node node(YAML::NodeType::Sequence); // 创建 YAML 序列
             for (auto& i : v) {
-                node.push_back(YAML::Load(LexicalCast<T, std::string>()(i)));
+                node.push_back(YAML::Load(LexicalCast<T, std::string>()(i))); // 每个元素转换为字符串
             }
             std::stringstream ss;
-            ss << node;
+            ss << node; // 将整个节点序列化为字符串
             return ss.str();
         }
     };

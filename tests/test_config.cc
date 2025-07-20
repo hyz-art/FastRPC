@@ -1,6 +1,7 @@
 #include "sylar/config.h"
 #include "sylar/log.h"
 #include <yaml-cpp/yaml.h>
+#include <iostream>
 static sylar::ConfigVar<int>::ptr g_int_value_config=sylar::Config::Lookup("system.port", (int)8080, "system port");
 
 sylar::ConfigVar<float>::ptr g_float_value_config = sylar::Config::Lookup("system.value", (float)10.2f, "system value");
@@ -173,10 +174,26 @@ SYLAR_LOG_INFO(SYLAR_LOG_ROOT()) << "before: " << g_person->getValue().toString(
     SYLAR_LOG_INFO(SYLAR_LOG_ROOT()) << "after: " << g_person_vec_map->toString();
 }
 
+
+void test_log(){
+    static sylar::Logger::ptr system_log = SYLAR_LOG_NAME("system");
+    SYLAR_LOG_INFO(system_log) << "hello system" << std::endl;
+    std::cout << sylar::LoggerMgr::GetInstance()->toYamlString() << std::endl;
+    YAML::Node root=YAML::LoadFile("/root/sylar_project/bin/conf/log.yml");
+    sylar::Config::LoadFromYaml(root);
+    std::cout << sylar::LoggerMgr::GetInstance()->toYamlString() << std::endl;
+
+    SYLAR_LOG_INFO(system_log) << "hello system" << std::endl;
+
+    system_log->setFormatter("%d - %m%n");
+    SYLAR_LOG_INFO(system_log) << "hello system" << std::endl;
+
+}
 int main(int argc,char** argv){
     //test_yaml();
     // SYLAR_LOG_INFO(SYLAR_LOG_ROOT())<<g_int_value_config->getValue();
     // SYLAR_LOG_INFO(SYLAR_LOG_ROOT())<<g_int_value_config->toString();
     //test_config();
-    test_class();
+    //test_class();
+    test_log();
 }
