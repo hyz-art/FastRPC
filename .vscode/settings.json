@@ -60,6 +60,7 @@
         "chrono": "cpp",
         "ratio": "cpp",
         "thread": "cpp",
-        "mutex": "cpp"
+        "mutex": "cpp",
+        "condition_variable": "cpp"
     }
 }

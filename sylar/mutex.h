@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <semaphore.h>
 #include <pthread.h>
+#include <atomic>
 #include "noncopyable.h"
 namespace sylar{
 class Semaphore:Noncopyable{
@@ -125,6 +126,18 @@ private:
 };
 
 /**
+ * @brief 空互斥锁，用于调试
+ */
+class NullMutex : Noncopyable{
+public:
+    typedef ScopedLockImpl<NullMutex> Lock;
+    NullMutex(){}
+    ~NullMutex(){}
+    void lock(){}
+    void unlock(){}
+};
+
+/**
  * @brief 读写互斥量
  */
 class RWMutex : Noncopyable{
@@ -139,5 +152,54 @@ public:
 private:
     pthread_rwlock_t m_lock;
 };
+
+/**
+ * @brief 空读写锁，用于调试
+ */
+class NullRWMutex:Noncopyable{
+public:
+    typedef ReadScopedLockImpl<NullRWMutex> ReadLock;
+    typedef WriteScopedLockImpl<NullRWMutex> WriteLock;
+    NullRWMutex(){}
+    ~NullRWMutex(){}
+    void rdlock(){}
+    void wrlock(){}
+    void unlock(){}
+};
+
+/**
+ * @brief 自旋锁
+ */
+class Spinlock:Noncopyable{
+public:
+    typedef ScopedLockImpl<Spinlock> Lock;
+    Spinlock(){ pthread_spin_init(&m_mutex,0);}
+    ~Spinlock(){ pthread_spin_destroy(&m_mutex);}
+    void lock(){ pthread_spin_lock(&m_mutex); }
+    void unlock(){ pthread_spin_unlock(&m_mutex); }
+private:
+    pthread_spinlock_t m_mutex;
+};
+
+/**
+ * @brief 原子锁
+ */
+class CASLock:Noncopyable{
+public:
+    typedef ScopedLockImpl<CASLock> Lock;
+    CASLock() { m_mutex.clear(); }
+    ~CASLock() {}
+    void lock(){
+        while(m_mutex.test_and_set(std::memory_order_acquire))
+            ;
+    }
+    void unlock(){
+        //m_mutex.clear(std::memory_order_release);
+        std::atomic_flag_clear_explicit(&m_mutex, std::memory_order_release);
+    }
+private:
+    std::atomic_flag m_mutex = ATOMIC_FLAG_INIT;// 原子标志位
+};
+
 }           
 #endif

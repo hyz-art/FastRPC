@@ -10,6 +10,8 @@
 #include <vector>
 #include <map>
 #include "singleton.h"
+#include "mutex.h"
+
 #define SYLAR_LOG_LEVEL(logger,level)\
     if(logger->getLevel()<=level)\
     sylar::LogEventWrap(sylar::LogEvent::ptr(new sylar::LogEvent(logger,level,__FILE__,\
@@ -135,6 +137,7 @@ namespace sylar
     {
         friend class Logger;
     public:
+        typedef Spinlock MutexType;
         typedef std::shared_ptr<LogAppender> ptr;
         virtual void log(std::shared_ptr<Logger> logger,LogLevel::Level Level, const LogEvent::ptr event)=0;
         virtual ~LogAppender(){}
@@ -150,6 +153,7 @@ namespace sylar
         LogLevel::Level m_level = LogLevel::DEBUG; // 日志级别
         bool m_hasFormatter = false;
         LogFormatter::ptr m_formatter; // 日志格式器
+        MutexType m_mutex;//对于写多的日志需要加锁
     };
 
     // 日志器
@@ -158,7 +162,7 @@ namespace sylar
         friend class LoggerManager;
     public:
         typedef std::shared_ptr<Logger> ptr;
-
+        typedef Spinlock MutexType;
         Logger(const std::string &name = "root");
         // 设置日志级别
         void log(LogLevel::Level level, const LogEvent::ptr &event);
@@ -196,6 +200,7 @@ namespace sylar
         std::list<LogAppender::ptr> m_appenders; // 日志输出地列表 
         LogFormatter::ptr m_formatter;
         Logger::ptr m_root;
+        MutexType m_mutex;
     };
 
     
@@ -227,6 +232,7 @@ namespace sylar
     class LoggerManager
     {
     public:
+        typedef Spinlock MutexType;
         LoggerManager();
         Logger::ptr getLogger(const std::string &name);
         void init();
@@ -235,6 +241,7 @@ namespace sylar
     private:
         std::map<std::string,Logger::ptr> m_loggers;
         Logger::ptr m_root;
+        MutexType m_mutex;
     };
 typedef sylar::Singleton<LoggerManager> LoggerMgr;
 

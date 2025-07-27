@@ -10,6 +10,7 @@ void fun1(){
                              << " id: " << sylar::GetThreadId()
                              << " this.id: " << sylar::Thread::GetThis()->getId();
     for (int i = 0; i < 10000; ++i) {
+        //count 进行递增时独占该资源
         sylar::RWMutex::WriteLock lock(s_mutex);
         //sylar::Mutex::Lock lock(s_mutex);
         ++count;
@@ -37,7 +38,11 @@ int main(int argc,char** argv){
     for (size_t i = 0; i < threads.size(); ++i) {
         threads[i]->join();
     }
-    sleep(10);
+    //sleep(10);
     SYLAR_LOG_INFO(g_logger) << "thread test end";
     SYLAR_LOG_INFO(g_logger) << "count=" << count;
+
+    sylar::Config::Visit([](sylar::ConfigVarBase::ptr var){
+        SYLAR_LOG_INFO(g_logger)<<"name="<<var->getDescription();
+    });
 }
