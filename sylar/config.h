@@ -318,7 +318,7 @@ namespace sylar
             const std::string& description=""){
             RWMutexType::WriteLock lock(GetMutex());
             auto it=GetDatas().find(name);
-            if(it!=GetDatas().end()){
+            if(it!=GetDatas().end()){//日志报告
                 auto tmp=std::dynamic_pointer_cast<ConfigVar<T>>(it->second);
                 if(tmp){//ConfigVarBase::ptr
                     SYLAR_LOG_INFO(SYLAR_LOG_ROOT())<<" Lookup name= "<<name<<" exists";
@@ -328,11 +328,11 @@ namespace sylar
                         <<" real_type= "<< it->second->getTypeName() << " " <<it->second->toString();
                     return nullptr; 
                 }
-            }
+            }//判断合法性
             if(name.find_first_not_of("abcdefghijklmnopqrstuvwxyz._0123456789")!=std::string::npos){
                 SYLAR_LOG_ERROR(SYLAR_LOG_ROOT()) << "Lookup name invalid " << name;
                 throw std::invalid_argument(name);
-            }
+            }//生成配置对象
             typename ConfigVar<T>::ptr v(new ConfigVar<T>(name,default_value,description));
             GetDatas()[name]=v;
             return v;

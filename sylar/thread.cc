@@ -15,7 +15,8 @@ const std::string& Thread::GetName(){
     return t_thread_name;
 }
 
-void Thread::setName(const std::string &name){
+void Thread::SetName(const std::string &name){
+    if(name.empty())return;
     //线程存在的话，线程对应的名也赋值
     if(t_thread){
         t_thread->m_name=name;

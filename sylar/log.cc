@@ -307,6 +307,7 @@ namespace sylar
         MutexType::Lock lock(m_mutex);
         if (!appender->getFormatter())
         {
+            MutexType::Lock ll(appender->m_mutex);
             appender->m_formatter = m_formatter;
         }
         m_appenders.push_back(appender);
@@ -335,7 +336,7 @@ namespace sylar
         MutexType::Lock lock(m_mutex);
         m_formatter=formatter;
         for (auto& i : m_appenders) {
-            //MutexType::Lock ll(i->m_mutex);
+            MutexType::Lock ll(i->m_mutex);
             if (!i->m_hasFormatter) {
                 i->m_formatter = m_formatter;
             }
@@ -372,15 +373,17 @@ namespace sylar
     }
     LogFormatter::ptr Logger::getFormatter()
     {
+        MutexType::Lock lock(m_mutex);
         return m_formatter;
     }
 
     void StdoutLogAppender::log(Logger::ptr logger, LogLevel::Level level, LogEvent::ptr event)
     {
-        if (level >= m_level && event)
+        if (level >= m_level )
         {
             MutexType::Lock lock(m_mutex);
             // 输出日志到标准输出
+            MutexType::Lock formatter_lock(m_mutex1); 
             m_formatter->format(std::cout, logger, level, event);
         }
     }

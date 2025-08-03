@@ -9,13 +9,14 @@
 #include <sstream>
 #include <vector>
 #include <map>
+#include <mutex>
 #include "singleton.h"
 #include "mutex.h"
-
+#include "thread.h"
 #define SYLAR_LOG_LEVEL(logger,level)\
     if(logger->getLevel()<=level)\
     sylar::LogEventWrap(sylar::LogEvent::ptr(new sylar::LogEvent(logger,level,__FILE__,\
-        __LINE__,0,sylar::GetThreadId(),sylar::GetFiberId(), time(0),"thread_name"))).getSS()
+        __LINE__,0,sylar::GetThreadId(),sylar::GetFiberId(), time(0),sylar::Thread::GetName()))).getSS()
 
 #define SYLAR_LOG_DEBUG(logger) SYLAR_LOG_LEVEL(logger,sylar::LogLevel::DEBUG)
 #define SYLAR_LOG_INFO(logger) SYLAR_LOG_LEVEL(logger,sylar::LogLevel::INFO)
@@ -26,7 +27,7 @@
 #define SYLAR_LOG_FMT_LEVEL(logger,level,fmt,...)\
     if(logger->getLevel()<=level)\
         sylar::LogEventWrap(sylar::LogEvent::ptr(new sylar::LogEvent(logger,level,__FILE__,\
-        __LINE__,0,sylar::GetThreadId(),sylar::GetFiberId(), time(0),"thread_name")))\
+        __LINE__,0,sylar::GetThreadId(),sylar::GetFiberId(), time(0),sylar::Thread::GetName())))\
         .getEvent()->format(fmt,__VA_ARGS__)
 
 #define SYLAR_LOG_FMT_DEBUG(logger,fmt,...) SYLAR_LOG_FMT_LEVEL(logger, sylar::LogLevel::DEBUG,fmt,__VA_ARGS__)
@@ -154,6 +155,8 @@ namespace sylar
         bool m_hasFormatter = false;
         LogFormatter::ptr m_formatter; // 日志格式器
         MutexType m_mutex;//对于写多的日志需要加锁
+        
+         MutexType m_mutex1;
     };
 
     // 日志器

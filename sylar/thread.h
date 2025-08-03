@@ -19,7 +19,7 @@ public:
     // 获取当前线程名
     static const std::string& GetName();
     // 设置线程名
-    static void setName(const std::string &name);
+    static void SetName(const std::string &name);
     // 获取线程id
     pid_t getId() const { return m_id;}
     // 获取线程名
