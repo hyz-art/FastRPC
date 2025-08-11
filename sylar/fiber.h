@@ -7,7 +7,9 @@
 #include "thread.h"
 
 namespace sylar{
+class Scheduler;
 class Fiber : public std::enable_shared_from_this<Fiber>{
+    friend class Scheduler;
 public:
     typedef std::shared_ptr<Fiber> ptr;
     enum State{
@@ -27,20 +29,26 @@ public:
     ~Fiber();
     //重置线程执行函数
     void reset(std::function<void()>cb);
-    //协程切换
+    //协程切换主调度器
     void swapIn();
     void swapOut();
-    
+    //执行当前线程的主协程
+    void call();
+    //返回线程的主协程
+    void back();
     static void SetThis(Fiber* f);
     static Fiber::ptr GetThis();
+    //切换到后台，修改状态
     static void YieldToHold();
     static void YieldToReady();
     static uint64_t TotalFibers();
     //执行函数，并返回主线程
     static void MainFunc();
+    static void CallerMainFunc();
     static uint64_t GetFiberId();
     uint64_t getId() const { return m_id; }
     State getState() const { return m_state; }
+    void setState(State state){m_state=state;}
 private:
     uint64_t m_id=0;
     uint32_t m_stacksize=0;

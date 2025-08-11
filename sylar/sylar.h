@@ -5,6 +5,7 @@
 #include "macro.h"
 #include "sylar/config.h"
 #include "log.h"
+#include "scheduler.h"
 #include "sylar/singleton.h"
 #include "sylar/util.h"
 #include "thread.h"
