@@ -87,10 +87,10 @@ private:
         /**
          * @brief 重置数据
          */
-        void reset(){
-            cb=nullptr;
-            fiber=nullptr;
-            thread=-1;
+        void reset() {
+            fiber  = nullptr;
+            cb     = nullptr;
+            thread = -1;
         }
     };
 

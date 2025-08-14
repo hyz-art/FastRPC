@@ -4,6 +4,7 @@
 #include "fiber.h"
 #include "macro.h"
 #include "sylar/config.h"
+#include "iomanager.h"
 #include "log.h"
 #include "scheduler.h"
 #include "sylar/singleton.h"
