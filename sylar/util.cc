@@ -2,6 +2,7 @@
 #include "log.h"
 #include "fiber.h"
 #include <execinfo.h>
+#include <sys/time.h>
 namespace sylar{
     sylar::Logger::ptr g_logger=SYLAR_LOG_NAME("system");
     pid_t GetThreadId(){
@@ -36,5 +37,18 @@ namespace sylar{
             ss<<prefix<<bt[i]<<std::endl;
         }
         return ss.str();
+    }
+
+    //毫秒
+    uint64_t GetCurrentMS(){
+        struct timeval tv;
+        gettimeofday(&tv,NULL);
+        return tv.tv_sec*1000ul + tv.tv_usec/1000;
+    }
+    //微秒
+    uint64_t GetCurrentUS(){
+        struct timeval tv;
+        gettimeofday(&tv,NULL);
+        return tv.tv_sec*1000*1000ul + tv.tv_usec;        
     }
 }

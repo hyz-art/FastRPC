@@ -251,7 +251,8 @@ void IOManager::tickle(){
 }
 
 bool IOManager::stopping(uint64_t &timeout){
-    return Scheduler::stopping()&& m_pendingEventCount==0;
+    timeout=getNextTime();//获取下一个定时器的时间
+    return Scheduler::stopping()&& m_pendingEventCount==0&&timeout==~0ull;
 }
 
 bool IOManager::stopping(){
@@ -276,7 +277,7 @@ void IOManager::idle(){
 
         int rt=0;
         do{
-                    static const int MAX_TIMEOUT=10;
+            static const int MAX_TIMEOUT=3000;
             if(next_timeout!=~0ull){
                 next_timeout=next_timeout>MAX_TIMEOUT? MAX_TIMEOUT:next_timeout;
             }else   next_timeout=MAX_TIMEOUT;
@@ -286,6 +287,13 @@ void IOManager::idle(){
             }else break;
         }while(true);
 
+        //除去过期事件
+        std::vector<std::function<void()>> expired_cbs;
+        listExpiredCb(expired_cbs);
+        if(!expired_cbs.empty()){
+            schedule(expired_cbs.begin(),expired_cbs.end());
+            expired_cbs.clear();
+        }
         //调度过期事件
         for(int i=0;i<rt;i++){
             epoll_event& event=events[i];
@@ -341,6 +349,9 @@ void IOManager::idle(){
         raw_ptr->swapOut();
     }
     
-    
+}
+
+void IOManager::onTimerInsertedAtFront() {
+    tickle();
 }
 };

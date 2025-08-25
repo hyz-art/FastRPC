@@ -35,5 +35,10 @@ void Backtrace(std::vector<std::string>& bt, int size=64,int skip=1);
  * @param[in] prefix 栈信息前输出的内容
  */
 std::string BacktraceToString(int size=64, int skip=2, const std::string& prefix = "");
+
+//毫秒
+uint64_t GetCurrentMS();
+//微秒
+uint64_t GetCurrentUS();
 }
 #endif
