@@ -48,7 +48,7 @@ public:
     static uint64_t GetFiberId();
     uint64_t getId() const { return m_id; }
     State getState() const { return m_state; }
-    void setState(State state){m_state=state;}
+    //void setState(State state){m_state=state;}
 private:
     uint64_t m_id=0;
     uint32_t m_stacksize=0;

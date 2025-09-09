@@ -1,6 +1,7 @@
 #include "scheduler.h"
 #include "log.h"
-
+#include "macro.h"
+#include "hook.h"
 namespace sylar{
 
 static sylar::Logger::ptr g_logger=SYLAR_LOG_NAME("system");
@@ -108,7 +109,7 @@ void Scheduler::setThis(){
 void Scheduler::run(){
     SYLAR_LOG_DEBUG(g_logger) << m_name << " run";
     //设置当前环境
-    //set_hook_enable(true);
+    set_hook_enable(true);
     setThis();
     //如果不是调度主协程，获取对应主协程
     if(sylar::GetThreadId()!=m_rootThread){
@@ -147,6 +148,7 @@ void Scheduler::run(){
                 is_active=true;
                 break;
             }            
+            tickle_me |= it != m_fibers.end();
         }
         if(tickle_me){
             tickle();
@@ -161,7 +163,7 @@ void Scheduler::run(){
             if(ft.fiber->getState()==Fiber::READY){
                 schedule(ft.fiber);
             }else if(ft.fiber->getState() != Fiber::TERM && ft.fiber->getState() != Fiber::EXCEPT){
-                ft.fiber->setState(Fiber::HOLD);
+                ft.fiber->m_state = Fiber::HOLD;
             }
             ft.reset();
         }else if(ft.cb){
@@ -177,10 +179,12 @@ void Scheduler::run(){
             //READY → 重新调度；TERM / EXCEPT → 清空；HOLD → 保留。
             if(cb_fiber->getState()==Fiber::READY){
                 schedule(cb_fiber);
+                cb_fiber.reset();
             }else if (cb_fiber->getState() == Fiber::EXCEPT || cb_fiber->getState() == Fiber::TERM) {
                 cb_fiber->reset(nullptr);
             } else {  // if(cb_fiber->getState() != Fiber::TERM) {
-                ft.fiber->setState(Fiber::HOLD);
+                cb_fiber->m_state = Fiber::HOLD;
+                //ft.fiber->setState(Fiber::HOLD);
                 cb_fiber.reset();
             }
         }else {//没有可执行的任务
@@ -197,7 +201,8 @@ void Scheduler::run(){
             idle_fiber->swapIn();
             --m_idleThreadCount;
             if (idle_fiber->getState() != Fiber::TERM && idle_fiber->getState() != Fiber::EXCEPT) {
-                idle_fiber->setState(Fiber::HOLD);
+                idle_fiber->m_state = Fiber::HOLD;
+                //idle_fiber->setState(Fiber::HOLD);
             }
         }
     }
@@ -207,6 +212,7 @@ void Scheduler::tickle(){
     SYLAR_LOG_INFO(g_logger)<<"tickle";
 }
 bool Scheduler::stopping(){
+    MutexType::Lock lock(m_mutex);
     return m_stopping&&m_autoStop&& m_fibers.empty()&&m_activeThreadCount==0;
 }
 //执行转入后台，状态改hold

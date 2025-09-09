@@ -10,6 +10,7 @@
 #include <vector>
 #include <map>
 #include <mutex>
+#include <stdarg.h>
 #include "singleton.h"
 #include "mutex.h"
 #include "thread.h"

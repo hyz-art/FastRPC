@@ -80,7 +80,7 @@ Fiber::~Fiber(){
 //重置线程执行函数,优化内存的使用
 void Fiber::reset(std::function<void()>cb){
     SYLAR_ASSERT(m_stack);
-    SYLAR_ASSERT(m_state==EXEC||m_state==INIT||m_state==TERM);
+    SYLAR_ASSERT(m_state==EXCEPT||m_state==INIT||m_state==TERM);
     m_cb=cb;
     if(getcontext(&m_ctx)){
         SYLAR_ASSERT2(false, "getcontext");

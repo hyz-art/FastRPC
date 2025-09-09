@@ -7,7 +7,7 @@
 #include <pthread.h>
 #include "mutex.h"
 namespace sylar{
-class Thread{
+class Thread : public Noncopyable{
 public:
     typedef std::shared_ptr<Thread> ptr;
     Thread(std::function<void()> cb, const std::string &name);
