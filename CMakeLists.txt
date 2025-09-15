@@ -11,6 +11,7 @@ include_directories(.)
 # link_directories(/apps/sylar/lib)
 # link_directories(/apps/sylar/lib64)
 set(LIB_SRC
+    sylar/address.cc
     sylar/log.cc
     sylar/util.cc
     sylar/config.cc
@@ -75,6 +76,10 @@ add_dependencies(test_hook sylar)
 force_redefine_file_macro_for_sources(test_hook)
 target_link_libraries(test_hook ${LIBS})
 
+add_executable(test_address tests/test_address.cc)
+add_dependencies(test_address sylar)
+force_redefine_file_macro_for_sources(test_address)
+target_link_libraries(test_address ${LIBS})
 
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)

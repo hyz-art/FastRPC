@@ -14,6 +14,7 @@
 #include "singleton.h"
 #include "mutex.h"
 #include "thread.h"
+#include "util.h"
 #define SYLAR_LOG_LEVEL(logger,level)\
     if(logger->getLevel()<=level)\
     sylar::LogEventWrap(sylar::LogEvent::ptr(new sylar::LogEvent(logger,level,__FILE__,\
