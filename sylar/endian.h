@@ -2,7 +2,7 @@
 #define __SYLAR_ENDIAN_H__
 
 #define SYLAR_LITTLE_ENDIAN 1
-#define SYLAR_BIG_ENGIAN 2
+#define SYLAR_BIG_ENDIAN 2
 
 #include <stdint.h>
 #include <byteswap.h>
@@ -25,12 +25,12 @@ typename std::enable_if<sizeof(T)==sizeof(uint16_t), T>::type byteswap(T value) 
 }
 
 #if BYTE_ORDER==BIG_ENDIAN
-#define SYLAR_BYTE_ORDER SYLAR_BIG_ENGIAN
+#define SYLAR_BYTE_ORDER SYLAR_BIG_ENDIAN
 #else
 #define SYLAR_BYTE_ORDER SYLAR_LITTLE_ENDIAN
 #endif
 
-#if SYLAR_BYTE_ORDER==SYLAR_BIG_ENGIAN
+#if SYLAR_BYTE_ORDER==SYLAR_BIG_ENDIAN
 //如果在小端机器上，就 swap 一下，让数据变成大端（网络字节序）
 template<class T>
 T byteswapOnLittleEndian(T t){
