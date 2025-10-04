@@ -100,5 +100,7 @@ protected:
     Address::ptr m_localAddress;
     Address::ptr m_remoteAddress;
 };
+
+std::ostream& operator<<(std::ostream& os, const Socket& sock);
 } // namespace sylar
 #endif
