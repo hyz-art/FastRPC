@@ -3,7 +3,7 @@
 #include "util.h"
 namespace sylar{
 static thread_local Thread* t_thread=nullptr;
-static thread_local std::string t_thread_name="UNNAMED";
+static thread_local std::string t_thread_name="UNKNOW";
 
 static sylar::Logger::ptr g_logger=SYLAR_LOG_NAME("system");
 
@@ -12,7 +12,12 @@ Thread* Thread::GetThis(){
 }
 
 const std::string& Thread::GetName(){
-    return t_thread_name;
+    //return t_thread_name;
+    if(t_thread) {
+        return t_thread->m_name;  // 返回当前线程对象的名字
+    }
+    static std::string empty = "";
+    return empty; 
 }
 
 void Thread::SetName(const std::string &name){
@@ -26,7 +31,7 @@ void Thread::SetName(const std::string &name){
 
 Thread::Thread(std::function<void()> cb, const std::string &name):m_cb(cb),m_name(name){
     if(name.empty()){
-        m_name="UNNAMED";
+        m_name="UNKNOW";
     }
     int rt=pthread_create(&m_thread,nullptr,&Thread::run,this);
     if(rt){

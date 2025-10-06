@@ -97,10 +97,9 @@ bool Socket::getOption(int level, int option, void *result, socklen_t *len){
     return true;
 }
 bool Socket::setOption(int level, int option, const void* result, socklen_t len) {
-    int rt=setsockopt(m_sock,level,option,result,(socklen_t)len);
-    if (rt) {
-        SYLAR_LOG_DEBUG(g_logger) << "setOption sock=" << m_sock << " level=" << level << " option=" << option << ", error" << errno
-                                  << " errstr=" << strerror(errno);
+    if (setsockopt(m_sock, level, option, result, (socklen_t)len)) {
+        SYLAR_LOG_DEBUG(g_logger) << "setOption sock=" << m_sock << " level=" << level << " option=" << option
+                                  << " errno=" << errno << " errstr=" << strerror(errno);
         return false;
     }
     return true;

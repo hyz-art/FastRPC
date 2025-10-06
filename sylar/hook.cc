@@ -110,13 +110,13 @@ static ssize_t do_io(int fd, OriginFun fun, const char *hook_fun_name, uint32_t 
     // 被信号中断，继续执行
     while (n == -1 && errno == EINTR)
     {
-        SYLAR_LOG_DEBUG(g_logger)<<"do_io<"<<hook_fun_name<<">";
+        //SYLAR_LOG_DEBUG(g_logger)<<"do_io<"<<hook_fun_name<<">";
         n = fun(fd, std::forward<Args>(args)...);
     }
     // 如果有读写超时设置，设定时器
     if (n == -1 && errno == EAGAIN)
     {
-        SYLAR_LOG_DEBUG(g_logger)<<"do_io<"<<hook_fun_name<<">";
+        //SYLAR_LOG_DEBUG(g_logger)<<"do_io<"<<hook_fun_name<<">";
         sylar::IOManager *iom = sylar::IOManager::GetThis();
         sylar::Fiber::ptr fiber = sylar::Fiber::GetThis();
         sylar::Timer::ptr timer;
