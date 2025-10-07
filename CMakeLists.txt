@@ -20,12 +20,16 @@ set(LIB_SRC
     sylar/fd_manager.cc
     sylar/http/http.cc
     sylar/http/http_parser.cc
+    # syalr/http/http_server.cc
+    # sylar/http/http_session.cc
     sylar/http/http11_parser.rl.cc
     sylar/http/httpclient_parser.rl.cc
     sylar/hook.cc
     sylar/iomanager.cc
     sylar/scheduler.cc
     sylar/socket.cc
+    sylar/stream.cc
+    sylar/streams/socket_stream.cc
     sylar/tcp_server.cc
     sylar/thread.cc
     sylar/timer.cc
